@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // 사용하려는 DB 종류 (postgresql, mysql 등)
+  url      = env("PRISMA_DATABASE_URL")
+}
+
+// 1. 환자 정보 모델
+model Patient {
+  id            Int      @id @default(autoincrement()) // 고유 DB ID
+  patientNumber String   @unique // 환자번호 (ex. 1234567)
+  name          String
+  birthdate     DateTime @db.Date // 날짜만 저장
+  specialNotes  String?  // 특이사항 (선택적)
+
+  // 1:N 관계 설정
+  // 한 명의 환자는 여러 개의 센서 데이터를 가질 수 있음
+  sensorData    StretcherData[]
+  
+  createdAt     DateTime @default(now())
+}
+
+// 2. 들것 센서 데이터 모델 (시계열 데이터)
+model StretcherData {
+  id        Int      @id @default(autoincrement())
+  timestamp DateTime @default(now()) // 측정 시간
+  tremor    Float    // 흔들림 값
+  shock     Float    // 충격 값
+
+  // 1:N 관계를 위한 외래 키
+  patient   Patient @relation(fields: [patientId], references: [id])
+  patientId Int     // 이 데이터가 속한 환자의 고유 DB ID
+  
+  @@index([patientId, timestamp]) // 검색 속도를 위한 인덱스
+}
